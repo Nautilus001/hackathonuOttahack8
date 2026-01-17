@@ -24,32 +24,32 @@ const STUB_VIDEOS = [
     id: 3, 
     title: "Scenario C: Cars and Racing in the rainy city", 
     url: "/videos/video3.mp4" 
-  }
+  },
   { 
     id: 4, 
     title: "Scenario D: Traditional East Asian Dancing", 
     url: "/videos/video4.mp4" 
-  }
+  },
   { 
     id: 5, 
     title: "Scenario E: Cartoons and Animation with Ducks and Grandmas", 
     url: "/videos/video5.mp4" 
-  }
+  },
   { 
     id: 6, 
     title: "Scenario F: Old School Jazz Band Performance", 
     url: "/videos/video6.mp4" 
-  }
+  },
   { 
     id: 7, 
     title: "Scenario G: Robots and Wires Overload", 
     url: "/videos/video7.mp4" 
-  }
+  },
   { 
     id: 8, 
     title: "Scenario H: Sourdough Tasty Fresh Bread Baking", 
     url: "/videos/video8.mp4" 
-  }
+  },
   { 
     id: 9, 
     title: "Scenario H: Fast-Paced Action Filled Hockey Game Highlights", 

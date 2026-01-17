@@ -11,12 +11,17 @@
   "devDependencies": {
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "typescript": "~5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vite-plugin-react": "^4.0.1"
   },
   "dependencies": {
+    "plugin-react": "^0.0.1-security",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "solace": "^1.2.0"
+    "solace": "^1.2.0",
+    "solclientjs": "^10.18.2",
+    "vite-plugin-node-polyfills": "^0.25.0"
   }
 }
