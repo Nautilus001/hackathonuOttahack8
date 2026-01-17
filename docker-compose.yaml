@@ -1,0 +1,27 @@
+services:
+  # 1. The Nervous System (Message Broker)
+  solace:
+    image: solace/solace-pubsub-standard:latest
+    container_name: solace-broker
+    ports:
+      - "55555:55555" # SMF port (Internal messaging)
+      - "8081:8080"   # Web Manager (Updated to 8081 to avoid conflict)
+      - "8008:8008"   # Web Transport
+      - "1883:1883"   # MQTT (IoT protocol)
+    environment:
+      - username_admin_globalaccesslevel=admin
+      - username_admin_password=admin
+      - system_scaling_maxconnectioncount=100
+    shm_size: 1g
+    ulimits:
+      core: -1
+      nofile:
+        soft: 1048576   # <--- FIXED: Increased from 10240
+        hard: 1048576   # <--- FIXED: Increased from 10240
+
+  # 2. The Short-Term Memory (State Store)
+  redis:
+    image: redis:latest
+    container_name: synapse-redis
+    ports:
+      - "6379:6379"

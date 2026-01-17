@@ -1,0 +1,3 @@
+solace-agent-mesh~=1.13.6
+solace-pubsubplus
+python-dotenv
