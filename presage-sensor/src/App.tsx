@@ -1,32 +1,83 @@
 import { useEffect, useRef, useState } from 'react';
 import solace from 'solace';
-import './App.css'; // Ensure you import the CSS
+import './App.css';
 
-// CONFIGURATION
+// --- CONFIG ---
 const BROKER_URL = "ws://localhost:8008"; 
 const VPN_NAME = "default";
 const USERNAME = "admin";
 const PASSWORD = "admin";
 
+// Stubbed Video Data
+const STUB_VIDEOS = [
+  { 
+    id: 1, 
+    title: "Scenario A: Gaming Minecraft", 
+    url: "/videos/video1.mp4"
+  },
+  { 
+    id: 2, 
+    title: "Scenario B: Old School Singing Rock Music", 
+    url: "/videos/video2.mp4" 
+  },
+  { 
+    id: 3, 
+    title: "Scenario C: Cars and Racing in the rainy city", 
+    url: "/videos/video3.mp4" 
+  }
+  { 
+    id: 4, 
+    title: "Scenario D: Traditional East Asian Dancing", 
+    url: "/videos/video4.mp4" 
+  }
+  { 
+    id: 5, 
+    title: "Scenario E: Cartoons and Animation with Ducks and Grandmas", 
+    url: "/videos/video5.mp4" 
+  }
+  { 
+    id: 6, 
+    title: "Scenario F: Old School Jazz Band Performance", 
+    url: "/videos/video6.mp4" 
+  }
+  { 
+    id: 7, 
+    title: "Scenario G: Robots and Wires Overload", 
+    url: "/videos/video7.mp4" 
+  }
+  { 
+    id: 8, 
+    title: "Scenario H: Sourdough Tasty Fresh Bread Baking", 
+    url: "/videos/video8.mp4" 
+  }
+  { 
+    id: 9, 
+    title: "Scenario H: Fast-Paced Action Filled Hockey Game Highlights", 
+    url: "/videos/video9.mp4" 
+  }
+];
+
 function App() {
-  // TypeScript Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // --- Refs ---
+  const webcamRef = useRef<HTMLVideoElement>(null);
+  const mainVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<any>(null);
-  
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [isStreamActive, setStreamActive] = useState<boolean>(false);
 
-  // Log Helper
+  // --- State ---
+  const [logs, setLogs] = useState<string[]>([]);
+  const [currentVideoIdx, setCurrentVideoIdx] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Helper to add logs
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString([], { hour12: false });
-    setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 8));
+    setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 10));
   };
 
-  // 1. Initialize Solace Connection
+  // 1. Solace Init (Same as before)
   useEffect(() => {
-    addLog("System initializing...");
     const factoryProps = new solace.SolclientFactoryProperties();
     factoryProps.profile = solace.SolclientFactoryProfiles.version10;
     solace.SolclientFactory.init(factoryProps);
@@ -39,138 +90,152 @@ function App() {
     });
 
     session.on(solace.SessionEventCode.UP_NOTICE, () => {
-      addLog("Network link established.");
+      addLog("✅ Solace Connected");
       setIsConnected(true);
     });
 
     session.on(solace.SessionEventCode.CONNECT_FAILED_ERROR, (e: any) => {
-      addLog(`Connection Error: ${e.message}`);
-      console.error(e);
-      setIsConnected(false);
-    });
-
-    session.on(solace.SessionEventCode.DISCONNECTED, () => {
-      addLog("Network link terminated.");
-      setIsConnected(false);
+      addLog(`❌ Connect Failed: ${e.message}`);
     });
 
     try {
-        addLog(`Dialing ${BROKER_URL}...`);
-        session.connect();
-        sessionRef.current = session;
-    } catch (error) {
-        addLog(`Init Failed: ${error}`);
+      session.connect();
+      sessionRef.current = session;
+    } catch (e) {
+      addLog(`Init Error: ${e}`);
     }
 
-    return () => {
-      if (sessionRef.current) sessionRef.current.disconnect();
-    };
+    return () => { if (sessionRef.current) sessionRef.current.disconnect(); };
   }, []);
 
-  // 2. Capture & Publish Loop
+  // 2. Webcam Setup
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        if (webcamRef.current) {
+          webcamRef.current.srcObject = stream;
+          webcamRef.current.play().catch(console.error);
+        }
+        addLog("📷 Webcam Active");
+      })
+      .catch(err => addLog(`❌ Webcam Fail: ${err.message}`));
+  }, []);
+
+  // 3. Publishing Loop (Sends Webcam frames to Solace)
   useEffect(() => {
     if (!isConnected || !sessionRef.current) return;
-
+    
     const interval = setInterval(() => {
-        if (videoRef.current && videoRef.current.readyState === 4 && canvasRef.current) { 
-            const context = canvasRef.current.getContext('2d');
-            if (context) {
-                // Draw frame
-                context.drawImage(videoRef.current, 0, 0, 320, 240);
-                
-                // Convert to Binary and Send
-                canvasRef.current.toBlob(async (blob) => {
-                    if(!blob) return;
-                    
-                    try {
-                        // Convert Blob to ArrayBuffer for safe transport
-                        const buffer = await blob.arrayBuffer();
-                        
-                        const message = solace.SolclientFactory.createMessage();
-                        const destination = solace.SolclientFactory.createTopicDestination("video/stream/user_jim");
-                        
-                        message.setDestination(destination);
-                        message.setBinaryAttachment(buffer);
-                        message.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT); 
-                        
-                        sessionRef.current.send(message);
-                        setStreamActive(true);
-                    } catch (error) {
-                        console.error("TX Fail", error);
-                        setStreamActive(false);
-                    }
-                }, 'image/jpeg', 0.5); 
-            }
+      // Only publish if NOT in "Saving" state
+      if (isSaving) return;
+
+      if (webcamRef.current && canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(webcamRef.current, 0, 0, 320, 240);
+          canvasRef.current.toBlob(async (blob) => {
+            if (!blob) return;
+            try {
+              const buffer = await blob.arrayBuffer();
+              const msg = solace.SolclientFactory.createMessage();
+              const dest = solace.SolclientFactory.createTopicDestination("video/stream/user_jim");
+              msg.setDestination(dest);
+              msg.setBinaryAttachment(buffer);
+              msg.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT);
+              sessionRef.current.send(msg);
+            } catch (e) { console.error(e); }
+          }, 'image/jpeg', 0.5);
         }
+      }
     }, 200); // 5 FPS
 
     return () => clearInterval(interval);
-  }, [isConnected]);
+  }, [isConnected, isSaving]);
 
-  // 3. Setup Webcam
+  // --- Handlers ---
+
+  const handleNextVideo = () => {
+    // 1. Pause everything
+    setIsSaving(true);
+    if (mainVideoRef.current) mainVideoRef.current.pause();
+    addLog(`💾 Saving session data for: ${STUB_VIDEOS[currentVideoIdx].title}`);
+
+    // 2. Simulate Save Delay (1.5s)
+    setTimeout(() => {
+      // 3. Move to next video
+      const nextIdx = (currentVideoIdx + 1) % STUB_VIDEOS.length;
+      setCurrentVideoIdx(nextIdx);
+      setIsSaving(false);
+      addLog(`▶️ Starting: ${STUB_VIDEOS[nextIdx].title}`);
+    }, 1500);
+  };
+
+  // Auto-play main video when index changes
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => { 
-        if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play().catch(e => console.error("Autoplay blocked:", e));
-        }
-        addLog("Optical sensor active.");
-      })
-      .catch(err => addLog(`Sensor Error: ${err.message}`));
-  }, []);
+    if (mainVideoRef.current) {
+      mainVideoRef.current.load();
+      mainVideoRef.current.play().catch(e => console.error("Auto-play prevented", e));
+    }
+  }, [currentVideoIdx]);
 
+
+  // --- RENDER ---
   return (
-    <div className="dashboard-container">
-      <div className="main-card">
+    <div className="app-container">
+      
+      {/* SIDEBAR: Sensor & Logs */}
+      <div className="sidebar">
+        <div className="brand">PRESAGE // SENSOR</div>
         
-        {/* Header Section */}
-        <header className="header">
-          <div className="title">
-            <h1>Presage Sensor</h1>
-            <div className="subtitle">UNIT ID: JIM-01 // AGENT MESH</div>
-          </div>
-          <div className={`status-pill ${isConnected ? 'status-connected' : 'status-error'}`}>
-            <div className="status-dot"></div>
-            <span>{isConnected ? 'ONLINE' : 'OFFLINE'}</span>
-          </div>
-        </header>
-
-        {/* Video Column */}
-        <div className="viewport-column">
-          <div className="viewport-container">
-            <video 
-                ref={videoRef} 
-                playsInline 
-                muted 
-                width="320" 
-                height="240" 
-            />
-            {/* HUD Overlay for visual effect */}
-            <div className="hud-overlay"></div>
-            {isStreamActive && (
-              <div className="rec-indicator">
-                <div className="rec-dot"></div> REC
-              </div>
-            )}
-            <canvas ref={canvasRef} style={{ display: 'none' }} width="320" height="240" />
+        <div className="webcam-container">
+          <video ref={webcamRef} className="webcam-video" playsInline muted />
+          <canvas ref={canvasRef} width="320" height="240" style={{ display: 'none' }} />
+          <div style={{ position: 'absolute', top: 5, right: 5, color: isSaving ? 'gray' : 'red', fontSize: '0.8rem' }}>
+             {isSaving ? 'PAUSED' : '● LIVE'}
           </div>
         </div>
 
-        {/* Logs Column */}
-        <div className="terminal-column">
-          <div className="terminal-container">
-            <div className="terminal-header">SYSTEM EVENTS</div>
-            {logs.length === 0 && <div className="log-entry" style={{opacity:0.5}}>Waiting for events...</div>}
-            {logs.map((log, i) => (
-                <div key={i} className="log-entry" style={{ opacity: Math.max(0.4, 1 - i * 0.1) }}>
-                    {log}
-                </div>
-            ))}
+        <div className="logs-container">
+          <div style={{ borderBottom: '1px solid #333', marginBottom: 5 }}>SYSTEM LOGS</div>
+          {logs.map((log, i) => (
+            <div key={i} className="log-entry">{log}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* MAIN STAGE: Stubbed Video Feed */}
+      <div className="main-stage">
+        
+        {isSaving && (
+          <div className="saving-overlay">
+            <div className="spinner"></div>
+            <div>SAVING SESSION DATA...</div>
+            <div style={{fontSize: '0.9rem', color: '#888', marginTop: 10}}>Writing to local storage</div>
           </div>
+        )}
+
+        <div className="video-player-frame">
+          <video 
+            ref={mainVideoRef}
+            className="main-video"
+            src={STUB_VIDEOS[currentVideoIdx].url}
+            controls={false} // Hide default controls to force use of our flow
+            loop
+          />
+        </div>
+
+        <div className="video-controls">
+          <div className="video-info">
+            <h2>{STUB_VIDEOS[currentVideoIdx].title}</h2>
+            <p>ID: #{STUB_VIDEOS[currentVideoIdx].id} // SEQUENCE: 00{currentVideoIdx + 1}</p>
+          </div>
+          <button className="btn-next" onClick={handleNextVideo} disabled={isSaving}>
+            Next Video &gt;&gt;
+          </button>
         </div>
 
       </div>
+
     </div>
   );
 }

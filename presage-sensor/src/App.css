@@ -1,204 +1,180 @@
 :root {
   --bg-dark: #0a0b10;
-  --panel-bg: rgba(20, 25, 35, 0.8);
-  --primary: #00f3ff; /* Cyan */
-  --success: #00ff9d; /* Green */
-  --danger: #ff0055;  /* Red */
+  --panel-bg: rgba(20, 25, 35, 0.9);
+  --primary: #00f3ff;
+  --success: #00ff9d;
+  --danger: #ff0055;
   --text-dim: #8892b0;
+  --sidebar-width: 320px;
 }
 
 body {
   margin: 0;
   background-color: var(--bg-dark);
-  background-image: 
-    radial-gradient(circle at 50% 50%, #1a202c 0%, #0a0b10 100%);
+  background-image: radial-gradient(circle at 50% 50%, #1a202c 0%, #0a0b10 100%);
   color: white;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
 }
 
-/* --- Layout Container --- */
-.dashboard-container {
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* --- Sidebar (Webcam + Logs) --- */
+.sidebar {
+  width: var(--sidebar-width);
+  background: rgba(10, 11, 16, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 20px;
+  z-index: 10;
+}
+
+.brand {
+  font-size: 1.2rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: white;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.webcam-container {
+  position: relative;
+  border: 2px solid rgba(0, 243, 255, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+  background: #000;
+}
+
+.webcam-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform: scaleX(-1); /* Mirror effect for webcam */
+}
+
+.logs-container {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 10px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-entry {
+  margin-bottom: 4px;
+  color: var(--primary);
+  word-break: break-all;
+}
+
+/* --- Main Stage (Video Feed) --- */
+.main-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.video-player-frame {
+  width: 100%;
+  max-width: 900px;
+  aspect-ratio: 16/9;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.main-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-controls {
+  margin-top: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  justify-content: space-between;
+}
+
+.video-info h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.video-info p {
+  margin: 5px 0 0;
+  color: var(--text-dim);
+}
+
+.btn-next {
+  background: var(--primary);
+  color: #000;
+  border: none;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+}
+
+.btn-next:hover {
+  background: white;
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+}
+
+.btn-next:active {
+  transform: translateY(2px);
+}
+
+/* --- Overlay Messages --- */
+.saving-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-}
-
-.main-card {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 2rem;
-  background: var(--panel-bg);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  max-width: 900px;
-  width: 100%;
-}
-
-/* --- Header --- */
-.header {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.title h1 {
-  margin: 0;
+  z-index: 50;
+  color: var(--success);
+  font-family: monospace;
   font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: white;
 }
 
-.subtitle {
-  color: var(--primary);
-  font-size: 0.8rem;
-  font-family: monospace;
-}
-
-/* --- Status Pills --- */
-.status-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--success);
+  border-top-color: transparent;
   border-radius: 50%;
-  background-color: var(--text-dim);
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
-.status-connected .status-dot {
-  background-color: var(--success);
-  box-shadow: 0 0 10px var(--success);
-  animation: pulse 2s infinite;
-}
-
-.status-error .status-dot {
-  background-color: var(--danger);
-}
-
-/* --- Video Viewport (HUD Style) --- */
-.viewport-container {
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid rgba(0, 243, 255, 0.3);
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
-}
-
-video {
-  display: block;
-  width: 100%;
-  height: auto;
-  opacity: 0.9;
-}
-
-/* HUD Overlay Effects */
-.hud-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.25) 50%
-  ), linear-gradient(
-    90deg, 
-    rgba(255, 0, 0, 0.06), 
-    rgba(0, 255, 0, 0.02), 
-    rgba(0, 0, 255, 0.06)
-  );
-  background-size: 100% 2px, 3px 100%;
-}
-
-.rec-indicator {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(0,0,0,0.6);
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: var(--danger);
-  font-size: 0.7rem;
-  font-weight: bold;
-  font-family: monospace;
-}
-
-.rec-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--danger);
-  border-radius: 50%;
-  animation: blink 1s infinite;
-}
-
-/* --- Terminal / Logs --- */
-.terminal-container {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  font-family: 'Fira Code', 'Courier New', monospace;
-  font-size: 0.8rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.terminal-header {
-  color: var(--text-dim);
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 5px;
-}
-
-.log-entry {
-  margin-bottom: 6px;
-  color: var(--primary);
-  text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
-}
-
-.log-entry::before {
-  content: "> ";
-  color: var(--text-dim);
-}
-
-/* --- Animations --- */
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
-@keyframes blink {
-  0% { opacity: 1; }
-  50% { opacity: 0; }
-  100% { opacity: 1; }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
