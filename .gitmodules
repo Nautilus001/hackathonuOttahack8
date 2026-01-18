@@ -1,0 +1,3 @@
+[submodule "backend/bridge/external/SmartSpectra"]
+	path = backend/bridge/external/SmartSpectra
+	url = https://github.com/Presage-Security/SmartSpectra.git
