@@ -96,20 +96,17 @@ const MOCK_PRODUCTS = [
 ];
 
 function App() {
-  // --- Refs ---
   const webcamRef = useRef<HTMLVideoElement>(null);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<any>(null);
 
-  // --- State ---
   const [logs, setLogs] = useState<string[]>([]);
   const [currentVideoIdx, setCurrentVideoIdx] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
-  // Helper to add logs
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString([], { hour12: false });
     setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 10));
@@ -131,6 +128,29 @@ function App() {
     session.on(solace.SessionEventCode.UP_NOTICE, () => {
       addLog("✅ Solace Connected");
       setIsConnected(true);
+
+      // Subscribe to SAM Responses
+      try {
+        const topic = solace.SolclientFactory.createTopicDestination(ORCHESTRATOR_RES_TOPIC);
+        session.subscribe(topic, true, "sam_res_sub", 10000);
+        addLog("📡 Subscribed to SAM Responses");
+      } catch (e) {
+        addLog(`❌ Sub Error: ${e}`);
+      }
+    });
+
+    // Handle Incoming SAM Messages (Results from C++ Specialist)
+    session.on(solace.SessionEventCode.MESSAGE, (message: any) => {
+      try {
+        const payload = JSON.parse(message.getBinaryAttachment());
+        // Extracting data from the specialist's response payload
+        if (payload.data && payload.data.bpm) {
+          setCurrentBpm(payload.data.bpm);
+          addLog(`💓 Vitals Detected: ${payload.data.bpm} BPM`);
+        }
+      } catch (e) {
+        console.error("Payload Parse Error", e);
+      }
     });
 
     session.on(solace.SessionEventCode.CONNECT_FAILED_ERROR, (e: any) => {
@@ -170,6 +190,7 @@ function App() {
       if (webcamRef.current && canvasRef.current) {
         const ctx = canvasRef.current.getContext('2d');
         if (ctx) {
+          // Capture frame for analysis
           ctx.drawImage(webcamRef.current, 0, 0, 320, 240);
           canvasRef.current.toBlob(async (blob) => {
             if (!blob) return;
@@ -194,12 +215,13 @@ function App() {
   const handleNextVideo = () => {
     setIsSaving(true);
     if (mainVideoRef.current) mainVideoRef.current.pause();
-    addLog(`💾 Saving session data for: ${STUB_VIDEOS[currentVideoIdx].title}`);
+    addLog(`💾 Saving session for: ${STUB_VIDEOS[currentVideoIdx].title}`);
 
     setTimeout(() => {
       const nextIdx = (currentVideoIdx + 1) % STUB_VIDEOS.length;
       setCurrentVideoIdx(nextIdx);
       setIsSaving(false);
+      setCurrentBpm(null); // Reset BPM for new scenario
       addLog(`▶️ Starting: ${STUB_VIDEOS[nextIdx].title}`);
     }, 1500);
   };
@@ -207,27 +229,34 @@ function App() {
   useEffect(() => {
     if (mainVideoRef.current) {
       mainVideoRef.current.load();
-      mainVideoRef.current.play().catch(e => console.error("Auto-play prevented", e));
+      mainVideoRef.current.play().catch(e => console.error("Playback error", e));
     }
   }, [currentVideoIdx]);
 
   return (
     <div className="app-container">
-      
-      {/* SIDEBAR: Sensor & Logs */}
+      {/* SIDEBAR */}
       <div className="sidebar">
         <div className="brand">PRESAGE // SENSOR</div>
         
         <div className="webcam-container">
           <video ref={webcamRef} className="webcam-video" playsInline muted />
           <canvas ref={canvasRef} width="320" height="240" style={{ display: 'none' }} />
-          <div style={{ position: 'absolute', top: 5, right: 5, color: isSaving ? 'gray' : 'red', fontSize: '0.8rem' }}>
-             {isSaving ? 'PAUSED' : '● LIVE'}
+          
+          {/* Vitals Overlay */}
+          <div className="vitals-monitor">
+            <div className={`heart-icon ${currentBpm ? 'pulse' : ''}`}>💓</div>
+            <div className="bpm-value">{currentBpm ? currentBpm : '--'}</div>
+            <div className="bpm-label">BPM</div>
+          </div>
+
+          <div className="status-indicator">
+             {isSaving ? 'PAUSED' : '● LIVE SENSING'}
           </div>
         </div>
 
         <div className="logs-container">
-          <div style={{ borderBottom: '1px solid #333', marginBottom: 5 }}>SYSTEM LOGS</div>
+          <div className="logs-header">SYSTEM LOGS</div>
           {logs.map((log, i) => (
             <div key={i} className="log-entry">{log}</div>
           ))}
@@ -241,12 +270,10 @@ function App() {
 
       {/* MAIN STAGE: Video Feed */}
       <div className="main-stage">
-        
         {isSaving && (
           <div className="saving-overlay">
             <div className="spinner"></div>
-            <div>SAVING SESSION DATA...</div>
-            <div style={{fontSize: '0.9rem', color: '#888', marginTop: 10}}>Writing to local storage</div>
+            <div>STABILIZING SENSORS...</div>
           </div>
         )}
 
@@ -263,13 +290,12 @@ function App() {
         <div className="video-controls">
           <div className="video-info">
             <h2>{STUB_VIDEOS[currentVideoIdx].title}</h2>
-            <p>ID: #{STUB_VIDEOS[currentVideoIdx].id} // SEQUENCE: 00{currentVideoIdx + 1}</p>
+            <p>ID: #{STUB_VIDEOS[currentVideoIdx].id} // MESH_ACTIVE: {isConnected ? 'YES' : 'NO'}</p>
           </div>
           <button className="btn-next" onClick={handleNextVideo} disabled={isSaving}>
-            Next Video &gt;&gt;
+            Next Scenario &gt;&gt;
           </button>
         </div>
-
       </div>
 
       {/* MODAL: USER PROFILE & SUGGESTIONS */}
