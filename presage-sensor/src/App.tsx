@@ -11,19 +11,19 @@ const USER_DISPLAY_NAME = "KARL";
 const USER_AVATAR = "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"; 
 const ORCHESTRATOR_RES_TOPIC = "sam/response";
 const FACEPP_URL = "https://api-us.faceplusplus.com/facepp/v3/detect";
-const API_KEY = "XquYAfouNoR_6aGeJ-pEcSk2JX-poFSD"; 
-const API_SECRET="1__vAMTR29tx54M8aOPPoXzB3e2hY018";
+const API_KEY = "azCqpFSAkVszLumZS7vD2PdUD-BH6mDd"; 
+const API_SECRET="Yn1nV3_0N7PZyarkBjaYnMRD5LbO30ga";
 
 const STUB_VIDEOS = [
-  { id: 1, title: "Scenario A: Gaming Minecraft", url: "/videos/video1.mp4" },
-  { id: 2, title: "Scenario B: Old School Singing Rock Music", url: "/videos/video2.mp4" },
-  { id: 3, title: "Scenario C: Cars and Racing in the rainy city", url: "/videos/video3.mp4" },
-  { id: 4, title: "Scenario D: Traditional East Asian Dancing", url: "/videos/video4.mp4" },
-  { id: 5, title: "Scenario E: Cartoons and Animation with Ducks and Grandmas", url: "/videos/video5.mp4" },
-  { id: 6, title: "Scenario F: Old School Jazz Band Performance", url: "/videos/video6.mp4" },
-  { id: 7, title: "Scenario G: Robots and Wires Overload", url: "/videos/video7.mp4" },
-  { id: 8, title: "Scenario H: Sourdough Tasty Fresh Bread Baking", url: "/videos/video8.mp4" },
-  { id: 9, title: "Scenario I: Fast-Paced Action Filled Hockey Game Highlights", url: "/videos/video9.mp4" }
+  { id: 1, title: "Scenario A: Gaming Minecraft", url: "/videos/video1.mp4", tags: ["GAMING", "MINECRAFT", "BRAINROT"]},
+  { id: 2, title: "Scenario B: Old School Singing Rock Music", url: "/videos/video2.mp4", tags: ["MUSIC EQUIPMENT", "LIVE PERFORMANCES", "VINTAGE"] },
+  { id: 3, title: "Scenario C: Cars and Racing in the rainy city", url: "/videos/video3.mp4", tags: ["CARS-SPORTS", "AFTERMARKET PARTS", "TIRES"] },
+  { id: 4, title: "Scenario D: Traditional East Asian Dancing", url: "/videos/video4.mp4", tags: ["DRUM", "DANCING", "TRADITIONAL DRESS"]},
+  { id: 5, title: "Scenario E: Cartoons and Animation with Ducks and Grandmas", url: "/videos/video5.mp4", tags: ["CARTOONS", "DUCK", "BREAD"] },
+  { id: 6, title: "Scenario F: Old School Jazz Band Performance", url: "/videos/video6.mp4", tags: ["YAMAHA", "PIANO", "EXPERIENCES"] },
+  { id: 7, title: "Scenario G: Robots and Wires Overload", url: "/videos/video7.mp4", tags: ["TECH", "WALLE-Y", "TERMINATOR"] },
+  { id: 8, title: "Scenario H: Sourdough Tasty Fresh Bread Baking", url: "/videos/video8.mp4", tags: ["BREAD", "HOMESTEAD", "PEPPERIDGE FARMS"] },
+  { id: 9, title: "Scenario I: Fast-Paced Action Filled Hockey Game Highlights", url: "/videos/video9.mp4", tags:["HEATED RIVALRY", "TORONTO MAPLE LEAVES", "SPORTS"] }
 ];
 
 function App() {
@@ -35,6 +35,15 @@ function App() {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPrimeTime, setIsPrimeTime] = useState(false);
+  const [harvestedInterests, setHarvestedInterests] = useState<string[]>([]);
+
+  const accrueInterests = (tags: string[]) => {
+    setHarvestedInterests(prev => {
+      const newSet = new Set([...prev, ...tags]);
+      return Array.from(newSet);
+    });
+  };
+
 
   const analyzeTransition = (newEmotion: string, strength: number) => {
     const isNeutral = newEmotion === "NEUTRAL";
@@ -105,25 +114,25 @@ function App() {
   };
 
   const getAdStrategy = () => {
-  switch (currentEmotion) {
-    case "HAPPINESS": case "HAPPY": 
-      return "IMPULSE UPLIFT: Serve Luxury/Lifestyle products. Subject is primed for reward-seeking.";
-    case "SADNESS": case "SAD": 
-      return "PREDATORY COMFORT: Initiate Retail Therapy triggers. High vulnerability detected.";
-    case "ANGER": case "ANGRY": 
-      return "AGGRESSION ANCHORING: Serve high-energy solutions or problem-solving toolsets.";
-    case "SURPRISE": 
-      return "PATTERN INTERRUPT: Subject cognitive load is high. Deploy high-margin 'Discovery' flash sales.";
-    case "FEAR": 
-      return "SECURITY ESCALATION: Serve protection-based services (Insurance/Cybersecurity). Panic threshold identified.";
-    case "DISGUST": 
-      return "PURITY FILTERING: Serve cleaning, hygiene, or 'Exclusive/Premium' isolation products to trigger sanctuary-seeking.";
-    case "NEUTRAL": 
-      return "PASSIVE RETENTION: Low conversion floor. Maintain dwell time via engagement loops.";
-    default: 
-      return "ANALYZING BIOMETRIC VECTORS...";
-  }
-};
+    switch (currentEmotion) {
+      case "HAPPINESS": case "HAPPY": 
+        return "IMPULSE UPLIFT: Serve Luxury/Lifestyle products. Subject is primed for reward-seeking.";
+      case "SADNESS": case "SAD": 
+        return "PREDATORY COMFORT: Initiate Retail Therapy triggers. High vulnerability detected.";
+      case "ANGER": case "ANGRY": 
+        return "AGGRESSION ANCHORING: Serve high-energy solutions or problem-solving toolsets.";
+      case "SURPRISE": 
+        return "PATTERN INTERRUPT: Subject cognitive load is high. Deploy high-margin 'Discovery' flash sales.";
+      case "FEAR": 
+        return "SECURITY ESCALATION: Serve protection-based services (Insurance/Cybersecurity). Panic threshold identified.";
+      case "DISGUST": 
+        return "PURITY FILTERING: Serve cleaning, hygiene, or 'Exclusive/Premium' isolation products to trigger sanctuary-seeking.";
+      case "NEUTRAL": 
+        return "PASSIVE RETENTION: Low conversion floor. Maintain dwell time via engagement loops.";
+      default: 
+        return "ANALYZING BIOMETRIC VECTORS...";
+    }
+  };
 
   // --- API LOGIC (NO CHANGES TO BUSINESS LOGIC) ---
   const captureAndAnalyzeEmotion = () => {
@@ -160,8 +169,25 @@ function App() {
 
           const strengthValue = emotionsObj[dominant] / 10;
           setEmotionStrength(strengthValue);
-
           analyzeTransition(dominant.toUpperCase(), strengthValue);
+          
+          // --- CRITICAL FIX START ---
+          // Use the index directly from your state
+          const activeVideo = STUB_VIDEOS[currentVideoIdx];
+          
+          // Log what the system is "seeing" to your terminal
+          console.log(`Checking tags for: ${activeVideo.title}`, activeVideo.tags);
+
+          const isPositive = ["HAPPINESS", "HAPPY", "SURPRISE"].includes(dominant.toUpperCase());
+
+          if (isPositive && strengthValue > 2.0) {
+            if (activeVideo.tags) {
+              accrueInterests(activeVideo.tags); // Call the state updater
+              addLog(`SUCCESS: Harvested ${activeVideo.tags.length} scalars`);
+            } else {
+              addLog("ERROR: No tags found on this video object");
+            }
+          }
 
           addLog(`Live Sense: ${dominant.toUpperCase()} (${emotionsObj[dominant].toFixed(1)}%)`);
         }
@@ -223,8 +249,8 @@ function App() {
             pollIntervalRef.current = setInterval(() => {
               addLog("AUTO-POLLING BIOMETRICS...");
               captureAndAnalyzeEmotion();
-            }, 3000);
-          }, 2000); 
+            }, 4000);
+          }, 3000); 
         }
       });
     },
@@ -245,11 +271,42 @@ function App() {
     return () => clearTimeout(timerId);
   }, [currentVideoIdx]);
 
+  const downloadBehavioralProfile = () => {
+    // Construct the dossier payload
+    const payload = {
+      subject: USER_DISPLAY_NAME,
+      timestamp: new Date().toISOString(),
+      analysis_id: "BIO-LOG-9921",
+      harvested_scalars: harvestedInterests,
+      session_status: "COMPLETE"
+    };
+
+    // Create the file in memory
+    const jsonString = JSON.stringify(payload, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Create a temporary link and trigger it
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${USER_DISPLAY_NAME}_INTERESTS.json`;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    addLog(`FILE_EXPORT: ${USER_DISPLAY_NAME}_INTERESTS.json downloaded.`);
+  };
+
+
   return (
     <div className="demo-layout">
       {/* 1/3: SENSING PANEL */}
       <section className="panel-left">
-        <div className="brand-header">SYNAPSE // SENSOR</div>
+        <div className="brand-header">SYNAPSE</div>
         
         <div className="webcam-module">
           <video ref={webcamRef} className="webcam-feed" playsInline muted />
@@ -355,6 +412,9 @@ function App() {
             {boredomStreak >= 7 ? "STABLE BASELINE REACHED: READY TO HARVEST" : "ESTABLISHING BASELINE..."}
           </span>
         </div>
+        <button className="export-btn" onClick={downloadBehavioralProfile}>
+          EXPORT SUBJECT DOSSIER »
+        </button>
         <div className="monetize-footer">
           MARKETPLACE DATA BROADCASTING...
         </div>
