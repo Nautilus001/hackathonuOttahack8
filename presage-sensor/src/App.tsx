@@ -26,6 +26,34 @@ const STUB_VIDEOS = [
   { id: 9, title: "Scenario I: Fast-Paced Action Filled Hockey Game Highlights", url: "/videos/video9.mp4", tags:["HEATED RIVALRY", "TORONTO MAPLE LEAVES", "SPORTS"] }
 ];
 
+// 2. MOCK PRODUCT DATA
+const MOCK_PRODUCTS = [
+  { 
+    id: 1, 
+    name: "Noise Cancelling Headphones", 
+    price: "$54.99", 
+    category: "Focus", 
+    image: "/products/headphones.jpg",
+    link: "https://www.amazon.ca/soundcore-Cancelling-Headphones-Bluetooth-Transparency/dp/B0F4884LN3?source=ps-sl-shoppingads-lpcontext&ref_=fplfs&psc=1&smid=AREE309N4XPXI" 
+  },
+  { 
+    id: 2, 
+    name: "Smart LED Therapy Lamp", 
+    price: "$52.99", 
+    category: "Wellness", 
+    image: "/products/lamp.jpg",
+    link: "https://www.https://www.amazon.ca/Verilux-HappyLight%C2%AE-Adjustable-Brightness-Countdown/dp/B08BCLLYN5/ref=sr_1_6?dib=eyJ2IjoiMSJ9.UMaQSuP6_-Vzsp4psKOOFyf-bx-GKGOjr9baYhgQ3YnQKw1GyzHJK0zUAk0g9LEWUKjUA9YleKpKLxUaOpi2XiYF7UpQnYB2riQcW8ET00Nk69liyncnkxx_5FBftp6PdpMHzRSZYgXf_iUFWVq9snQtwlvGVemj8vyFaial0sVhz7p6PzN6jaPDsBsMUhFvwm7dTUgU7f-ju33eor7mZU4yy7tyVA0JPLohOONasLQ8lAOEgtkoO7KPfndwtfqgL0vXkiwkdpSI6Myufl-bMS7qRgTBnu7YW1K_53Fw0K8.Ra5WELs6JD1QdJZ9WuhHGkL5z-rVciBO_Wr-y96fink&dib_tag=se&keywords=light+therapy+lamps&qid=1768700439&sr=8-6"
+  },
+  { 
+    id: 3, 
+    name: "Ergonomic Mesh Chair", 
+    price: "$289.99", 
+    category: "Comfort", 
+    image: "/products/chair.jpg",
+    link: "https://www.https://www.amazon.ca/ELABEST-Office-Ergonomic-Computer-Sturdy/dp/B0BKT1NR68/ref=sr_1_7?dib=eyJ2IjoiMSJ9.VEGaTHyVkxMtFRqKY451Ztn_2s4t0yB2Qrqjc50E6epmv-gB2yQ_ShkWZrrUPP_anYVndPdD6yzpAXsmfx_ucT5eimq0l9LQC0-_sOP5m-f8T4Gpoiq5NA9BXoUQ26egsqIpXDedHfze9ORTEozLNvIwvHNOasXI-xie0fot1YWhMKbg1BHENbENzdoXxGDhVBHWFPVdhYFoGvzEOf0BSA94b0INnVpbPiPGcwgF1r3W6JamGc4ygN9CkuUB3FsuOG6K_SgNs2zTIDGskzvl9Klt3aOgXpdTam_NdGHWRq0.cuyi9FfcZFH8mowR2PJEvxtoRZX7CSvk4tMAsRWB2b4&dib_tag=se&keywords=mesh%2Boffice%2Bchair&qid=1768700492&sr=8-7&th=1"
+  }
+];
+
 function App() {
   const webcamRef = useRef<HTMLVideoElement>(null);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
@@ -48,7 +76,7 @@ function App() {
   const analyzeTransition = (newEmotion: string, strength: number) => {
     const isNeutral = newEmotion === "NEUTRAL";
     const isExcited = ["HAPPINESS", "HAPPY", "SURPRISE", "ANGER", "ANGRY"].includes(newEmotion);
-    const isStrong = strength >= 5.5; 
+    const isStrong = strength >= 4; 
 
     if (isNeutral) {
       // This will now trigger a re-render so the dots fill up!
@@ -180,7 +208,7 @@ function App() {
 
           const isPositive = ["HAPPINESS", "HAPPY", "SURPRISE"].includes(dominant.toUpperCase());
 
-          if (isPositive && strengthValue > 2.0) {
+          if (isPositive && strengthValue >= 2.0) {
             if (activeVideo.tags) {
               accrueInterests(activeVideo.tags); // Call the state updater
               addLog(`SUCCESS: Harvested ${activeVideo.tags.length} scalars`);
@@ -249,8 +277,8 @@ function App() {
             pollIntervalRef.current = setInterval(() => {
               addLog("AUTO-POLLING BIOMETRICS...");
               captureAndAnalyzeEmotion();
-            }, 4000);
-          }, 3000); 
+            }, 3000);
+          }, 2000); 
         }
       });
     },
@@ -334,7 +362,7 @@ function App() {
       {/* 1/3: MEDIA PLAYER */}
       <section className="panel-middle instagram-feed">
         {STUB_VIDEOS.map((video, index) => (
-          <div key={video.id} className="video-snap-card">
+          <div key={video.id} data-class={index} className="video-snap-card">
             <div className="media-player-container">
               <video 
                 className="media-video" 
