@@ -1,368 +1,285 @@
 :root {
-  --bg-dark: #0a0b10;
-  --panel-bg: rgba(20, 25, 35, 0.9);
+  --bg: #050608;
+  --panel: #0d1117;
   --primary: #00f3ff;
-  --success: #00ff9d;
-  --danger: #ff0055;
-  --text-dim: #8892b0;
-  --sidebar-width: 320px;
+  --accent: #00ff9d;
+  --warn: #ff0055;
+  --text: #c9d1d9;
 }
 
-body {
+/* --- CRITICAL LAYOUT RESET --- */
+* {
+  box-sizing: border-box; /* This keeps 30+40+30 = 100 exactly */
   margin: 0;
-  background-color: var(--bg-dark);
-  background-image: radial-gradient(circle at 50% 50%, #1a202c 0%, #0a0b10 100%);
-  color: white;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  overflow: hidden;
+  padding: 0;
 }
 
-.app-container {
+:root {
+  --bg: #050608;
+  --panel: #0d1117;
+  --primary: #00f3ff;
+  --accent: #00ff9d;
+  --warn: #ff0055;
+  --text: #c9d1d9;
+}
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Prevents unwanted scrolling during demo */
+  background-color: var(--bg);
+}
+
+.demo-layout {
+  display: flex;
+  position: absolute; /* Ensures it ignores parent padding */
+  top: 0;
+  left: 0;
+  width: 100%; /* Use 100% instead of 100vw to avoid scrollbar math errors */
+  height: 100vh;
+  align-items: stretch;
+  justify-content: flex-start; /* Explicitly dock to the left */
+}
+
+/* --- THE 30 / 40 / 30 SPLIT --- */
+.panel-left {
+  width: 30%;
+  min-width: 30%;
+  max-width: 30%;
+  background: rgba(10, 11, 16, 0.95);
+  border-right: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.panel-middle {
+  flex: 0 0 40%;
+  max-width: 40%;
+  background: #000;
+  border-right: 1px solid rgba(0, 243, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 25px;
+  height: 100vh; /* Lock height to viewport */
+  overflow: hidden; /* Disable scrolling */
+}
+
+.panel-middle.instagram-feed {
+  flex: 0 0 40%;
+  max-width: 40%;
+  height: 100vh;
+  overflow-y: scroll; /* Enable vertical scrolling */
+  scroll-snap-type: y mandatory; /* Force snapping to each video */
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  background: #000;
+}
+
+.panel-middle.instagram-feed::-webkit-scrollbar {
+  display: none;
+}               
+
+.text-prime-alert {
+  color: var(--warn) !important; /* Forces the red from your :root */
+  text-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
+}
+
+@keyframes jitter-anim {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-1.5px, 1.5px); }
+  50% { transform: translate(1.5px, -1.5px); }
+  75% { transform: translate(-1.5px, -1.5px); }
+  100% { transform: translate(1.5px, 1.5px); }
+}
+
+.jitter {
+  display: inline-block;
+  animation: jitter-anim 0.15s cubic-bezier(.36,.07,.19,.97) infinite;
+}
+
+.video-snap-card {
+  width: 100%;
+  height: 100vh; /* Each "post" takes full height */
+  scroll-snap-align: start; /* Snap to the top of this card */
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-bottom: 1px solid #111;
+}
+
+.media-player-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.media-video {
+  max-width: 100%;
+  max-height: 100vh; /* Leave room for text below */
+  border-radius: 12px;
+  object-fit: cover; /* Instagram style: fill the space */
+}
+
+.media-controls {
+  flex: 0 0 auto; /* Don't let controls shrink or grow */
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.media-meta {
+  padding: 20px 0;
+  flex: 0 0 auto;
+}
+
+.panel-right {
+  width: 30%;
+  min-width: 30%;
+  max-width: 30%;
+  background: #0a0d12;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.demo-layout {
   display: flex;
   height: 100vh;
   width: 100vw;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* --- Sidebar (Webcam + Logs) --- */
-.sidebar {
-  width: var(--sidebar-width);
-  background: rgba(10, 11, 16, 0.95);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+/* Common Panel Styling */
+section {
+  padding: 25px;
+  border-right: 1px solid rgba(255,255,255,0.05);
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 20px;
-  z-index: 10;
 }
 
-.brand {
-  font-size: 1.2rem;
-  font-weight: bold;
-  letter-spacing: 2px;
-  color: white;
-  margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 10px;
-}
+.panel-left { width: 30%; }
+.panel-middle { width: 40%; background: #000; }
+.panel-right { width: 30%; border-right: none; background: #0a0d12;}
 
-.webcam-container {
+/* LEFT: SENSOR PANEL */
+.webcam-module {
   position: relative;
-  border: 2px solid rgba(0, 243, 255, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
-  background: #000;
-}
-
-.webcam-video {
-  width: 100%;
-  height: auto;
-  display: block;
-  transform: scaleX(-1); /* Mirror effect for webcam */
-}
-
-.logs-container {
-  flex: 1;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--primary);
   border-radius: 4px;
-  padding: 10px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
 }
-
-.log-entry {
-  margin-bottom: 4px;
-  color: var(--primary);
-  word-break: break-all;
+.webcam-feed { width: 100%; transform: scaleX(-1); display: block; }
+.scan-line {
+  position: absolute; top: 0; width: 100%; height: 2px;
+  background: var(--primary); box-shadow: 0 0 10px var(--primary);
+  animation: scan 3s linear infinite;
 }
+@keyframes scan { from { top: 0; } to { top: 100%; } }
 
-/* --- Main Stage (Video Feed) --- */
-.main-stage {
+.emoji-stage { font-size: 5rem; text-align: center; margin-top: 20px; }
+.emotion-label { font-size: 2rem; font-weight: 800; text-align: center; color: white; letter-spacing: 3px; }
+.sentiment-sub { text-align: center; font-size: 0.7rem; color: var(--primary); }
+
+.terminal-logs {
+  margin-top: auto;
+  background: #000;
+  padding: 15px;
+  font-family: monospace;
+  font-size: 0.7rem;
+  border: 1px solid #222;
+}
+.log-line { color: var(--accent); margin-bottom: 4px; }
+
+/* MIDDLE: MEDIA PLAYER */
+.media-player-container {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  padding: 40px;
   align-items: center;
-  justify-content: center;
   position: relative;
 }
 
-.video-player-frame {
-  width: 100%;
-  max-width: 900px;
-  aspect-ratio: 16/9;
-  background: #000;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  position: relative;
+.media-video { width: 100%; border-radius: 8px; box-shadow: 0 0 40px rgba(0,0,0,1); }
+.media-controls { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+.next-trigger {
+  background: var(--primary); border: none; padding: 15px 30px;
+  font-weight: 900; cursor: pointer; border-radius: 4px;
 }
 
-.main-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+/* RIGHT: PROFILE PANEL */
+.profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 40px; }
+.profile-img { width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--primary); }
+.profile-title h2 { margin: 0; color: white; font-size: 1.8rem; }
+.id-tag { font-size: 0.7rem; color: var(--primary); font-family: monospace; }
 
-.video-controls {
+.metric-box { margin-bottom: 30px; display: flex; flex-direction: column; }
+.label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+.value { font-size: 2.5rem; font-weight: 900; color: white; line-height: 1; }
+.text-success { color: var(--accent); }
+
+.intensity-bar { width: 100%; height: 6px; background: #222; margin-top: 10px; border-radius: 3px; }
+.fill { height: 100%; background: var(--primary); transition: width 0.5s ease; border-radius: 3px; }  
+
+.strategy-box {
+  background: rgba(0, 243, 255, 0.05);
+  border-left: 3px solid var(--primary);
+  padding: 20px;
   margin-top: 20px;
+}
+
+.strategy-text { font-size: 0.95rem; line-height: 1.6; color: #eee; margin: 0; }
+
+.tag { font-size: 0.6rem; padding: 4px 8px; order: 1px solid #333; color: #555; }
+.tag.active { border-color: var(--accent); color: var(--accent); }
+.status-grid { display: flex; gap: 10px; margin-top: 10px; }
+
+.streak-dots {
   display: flex;
-  gap: 20px;
-  align-items: center;
-  width: 100%;
-  max-width: 900px;
-  justify-content: space-between;
-}
-
-.video-info h2 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.video-info p {
-  margin: 5px 0 0;
-  color: var(--text-dim);
-}
-
-.btn-next {
-  background: var(--primary);
-  color: #000;
-  border: none;
-  padding: 12px 32px;
-  font-size: 1rem;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: all 0.2s;
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
-}
-
-.btn-next:hover {
-  background: white;
-  box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
-}
-
-.btn-next:active {
-  transform: translateY(2px);
-}
-
-/* --- Overlay Messages --- */
-.saving-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.85);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  gap: 30px;
+  margin: 15px 0;
   justify-content: center;
-  z-index: 50;
-  color: var(--success);
-  font-family: monospace;
-  font-size: 1.5rem;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--success);
-  border-top-color: transparent;
+.dot {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #333; /* Dark border so it's visible against black */
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* --- User Profile Button --- */
-.btn-profile {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   background: transparent;
-  border: 1px solid var(--primary);
-  color: var(--primary);
-  padding: 10px;
-  width: 100%;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: auto; /* Pushes it to bottom of sidebar */
-  font-family: monospace;
-  text-transform: uppercase;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
 }
 
-.btn-profile:hover {
-  background: rgba(0, 243, 255, 0.1);
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
-}
-
-/* --- Profile Modal (Overlay) --- */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(5px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.3s ease;
-}
-
-.modal-content {
-  background: #12141a;
-  border: 1px solid var(--primary);
-  width: 800px;
-  max-width: 90%;
-  max-height: 85vh;
-  border-radius: 12px;
-  box-shadow: 0 0 50px rgba(0, 243, 255, 0.15);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(255,255,255,0.02);
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: white;
-  font-size: 1.2rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-.btn-close:hover { color: white; }
-
-.modal-body {
-  padding: 30px;
-  overflow-y: auto;
-}
-
-/* --- Analysis Section --- */
-.analysis-summary {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.stat-card {
-  flex: 1;
-  background: rgba(255,255,255,0.03);
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: var(--primary);
-  margin: 5px 0;
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-}
-
-/* --- Product Grid --- */
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.product-card {
-  background: rgba(255,255,255,0.05);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.2s;
-  border: 1px solid transparent;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary);
-}
-
-.product-image {
-  width: 100%;
-  height: 140px;
-  background: #000;
-  object-fit: cover;
-}
-
-.product-info {
-  padding: 15px;
-}
-
-.product-title {
-  font-size: 0.9rem;
-  font-weight: bold;
-  margin: 0 0 5px 0;
-  color: white;
-}
-
-.product-price {
-  color: var(--success);
-  font-family: monospace;
-  font-size: 1.1rem;
-}
-
-.btn-buy {
-  width: 100%;
-  margin-top: 10px;
-  padding: 8px;
+.dot.active {
   background: var(--primary);
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  color: #000;
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
 }
 
-.btn-buy:hover { opacity: 0.9; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* Add this to the bottom of your CSS file */
-.profile-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--primary);
-  margin-right: 15px;
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+/* When the streak hits 3 (Red alert/Primed) */
+.dot.primed {
+  background: var(--warn) !important;
+  border-color: var(--warn) !important;
+  box-shadow: 0 0 15px var(--warn);
+  animation: pulse-red 1s infinite alternate;
 }
 
-.modal-header-content {
-  display: flex;
-  align-items: center;
+@keyframes pulse-red {
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(1.2); opacity: 1; }
 }
+
+.monetize-footer {
+  margin-top: auto;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #333;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 20px;
+  animation: blink 2s infinite;
+}
+@keyframes blink { 50% { opacity: 0.3; } }
