@@ -11,13 +11,9 @@ const USER_DISPLAY_NAME = "KARL";
 const USER_AVATAR = "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"; 
 const ORCHESTRATOR_RES_TOPIC = "sam/response";
 const FACEPP_URL = "https://api-us.faceplusplus.com/facepp/v3/detect";
-
-// ⚠️ HACKATHON WARNING: Exposing API keys in frontend code is risky for production.
-// Ensure you rotate this key after the event.
 const API_KEY = "XquYAfouNoR_6aGeJ-pEcSk2JX-poFSD"; 
 const API_SECRET="1__vAMTR29tx54M8aOPPoXzB3e2hY018";
 
-// 1. UPDATED VIDEO LIST
 const STUB_VIDEOS = [
   { id: 1, title: "Scenario A: Gaming Minecraft", url: "/videos/video1.mp4" },
   { id: 2, title: "Scenario B: Old School Singing Rock Music", url: "/videos/video2.mp4" },
@@ -30,400 +26,339 @@ const STUB_VIDEOS = [
   { id: 9, title: "Scenario I: Fast-Paced Action Filled Hockey Game Highlights", url: "/videos/video9.mp4" }
 ];
 
-// 2. MOCK PRODUCT DATA
-const MOCK_PRODUCTS = [
-  { 
-    id: 1, 
-    name: "Noise Cancelling Headphones", 
-    price: "$54.99", 
-    category: "Focus", 
-    image: "/products/headphones.jpg",
-    link: "https://www.amazon.ca/soundcore-Cancelling-Headphones-Bluetooth-Transparency/dp/B0F4884LN3" 
-  },
-  { 
-    id: 2, 
-    name: "Smart LED Therapy Lamp", 
-    price: "$52.99", 
-    category: "Wellness", 
-    image: "/products/lamp.jpg",
-    link: "https://www.amazon.ca/Verilux-HappyLight%C2%AE-Adjustable-Brightness-Countdown/dp/B08BCLLYN5"
-
-  },
-  { 
-    id: 3, 
-    name: "Ergonomic Mesh Chair", 
-    price: "$289.99", 
-    category: "Comfort", 
-    image: "/products/chair.jpg",
-    link: "https://www.amazon.ca/ELABEST-Office-Ergonomic-Computer-Sturdy/dp/B0BKT1NR68"
-  },
-  { 
-    id: 4, 
-    name: "Organic Calming Chamomile Tea", 
-    price: "$6.99", 
-    category: "Wellness",
-    image: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=500",
-    link: "https://davidstea.com/products/organic-calming-chamomile-tea"
-  },
-];
-
 function App() {
   const webcamRef = useRef<HTMLVideoElement>(null);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<any>(null);
+  const [boredomStreak, setBoredomStreak] = useState(0);  
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isPrimeTime, setIsPrimeTime] = useState(false);
+
+  const analyzeTransition = (newEmotion: string, strength: number) => {
+    const isNeutral = newEmotion === "NEUTRAL";
+    const isExcited = ["HAPPINESS", "HAPPY", "SURPRISE", "ANGER", "ANGRY"].includes(newEmotion);
+    const isStrong = strength >= 5.5; 
+
+    if (isNeutral) {
+      // This will now trigger a re-render so the dots fill up!
+      setBoredomStreak(prev => {
+        const newStreak = prev + 1;
+        addLog(`BOREDOM STREAK: ${newStreak}`);
+        return newStreak;
+      });
+    } else if (isExcited && isStrong && boredomStreak >= 7) {
+      triggerPrimeSelling(newEmotion, strength);
+      setBoredomStreak(0); 
+    } else if (isExcited) {
+      setBoredomStreak(0);
+      addLog("ENGAGEMENT DETECTED (NO STREAK)");
+    }
+  };
+
+  const triggerPrimeSelling = (emotion: string, strength: number) => {
+    setIsPrimeTime(true);
+    addLog(`!!! TARGET ACQUIRED: STREAK BROKEN VIA ${emotion} !!!`);
+    
+    // Solace Uplink: Broadcast the "Prime" event
+    if (sessionRef.current) {
+      const message = solace.SolclientFactory.createMessage();
+      message.setDestination(solace.SolclientFactory.createTopic("market/prime_opportunity"));
+      message.setBinaryAttachment(JSON.stringify({
+        subject: "KARL",
+        trigger: emotion,
+        intensity: strength,
+        streak_length: boredomStreak
+      }));
+      sessionRef.current.send(message);
+    }
+
+    setTimeout(() => setIsPrimeTime(false), 6000);
+  };
 
   const [logs, setLogs] = useState<string[]>([]);
   const [currentVideoIdx, setCurrentVideoIdx] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [currentEmotion, setCurrentEmotion] = useState<string>
-  ("Analyzing...");
-  const [emotionStrength, setEmotionStrength] = useState(1);
+  const [currentEmotion, setCurrentEmotion] = useState<string>("NEUTRAL");
+  const [emotionStrength, setEmotionStrength] = useState(1.0);
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString([], { hour12: false });
-    setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 10));
+    setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 8));
   };
 
-  // --- LUXAND API INTEGRATION ---
-  
-  // 1. Capture Frame and Trigger API
+  // --- DEMO LOGIC HELPERS ---
+  const getMarketValue = () => {
+    const base = 0.45;
+    const multipliers: any = { 
+        HAPPINESS: 1.2, HAPPY: 1.2, 
+        SADNESS: 2.5, SAD: 2.5, 
+        ANGER: 1.8, ANGRY: 1.8, 
+        SURPRISE: 1.5, 
+        NEUTRAL: 0.1 
+    };
+    const s = isPrimeTime ? 3 : 1; //streakiplier
+    const m = multipliers[currentEmotion] || 1.0;
+    return (base * m * s * (emotionStrength / 5)).toFixed(2);
+  };
+
+  const getAdStrategy = () => {
+  switch (currentEmotion) {
+    case "HAPPINESS": case "HAPPY": 
+      return "IMPULSE UPLIFT: Serve Luxury/Lifestyle products. Subject is primed for reward-seeking.";
+    case "SADNESS": case "SAD": 
+      return "PREDATORY COMFORT: Initiate Retail Therapy triggers. High vulnerability detected.";
+    case "ANGER": case "ANGRY": 
+      return "AGGRESSION ANCHORING: Serve high-energy solutions or problem-solving toolsets.";
+    case "SURPRISE": 
+      return "PATTERN INTERRUPT: Subject cognitive load is high. Deploy high-margin 'Discovery' flash sales.";
+    case "FEAR": 
+      return "SECURITY ESCALATION: Serve protection-based services (Insurance/Cybersecurity). Panic threshold identified.";
+    case "DISGUST": 
+      return "PURITY FILTERING: Serve cleaning, hygiene, or 'Exclusive/Premium' isolation products to trigger sanctuary-seeking.";
+    case "NEUTRAL": 
+      return "PASSIVE RETENTION: Low conversion floor. Maintain dwell time via engagement loops.";
+    default: 
+      return "ANALYZING BIOMETRIC VECTORS...";
+  }
+};
+
+  // --- API LOGIC (NO CHANGES TO BUSINESS LOGIC) ---
   const captureAndAnalyzeEmotion = () => {
-    if (webcamRef.current) {
+    if (webcamRef.current) {                                        
       const videoElement = webcamRef.current;
       const canvas = document.createElement("canvas");
       canvas.width = videoElement.videoWidth;
       canvas.height = videoElement.videoHeight;
       const ctx = canvas.getContext("2d");
-      
       if (ctx) {
         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            sendToFacePlusPlus(blob);
-          }
-        }, "image/jpeg", 0.8);
+        canvas.toBlob((blob) => { if (blob) sendToFacePlusPlus(blob); }, "image/jpeg", 0.8);
       }
     }
   };
 
-  // 2. Send to API
   const sendToFacePlusPlus = async (imageBlob: Blob) => {
-    addLog("📸 Sending frame to Face++...");
-
     const formData = new FormData();
-    formData.append("api_key","XquYAfouNoR_6aGeJ-pEcSk2JX-poFSD");
-    formData.append("api_secret", "1__vAMTR29tx54M8aOPPoXzB3e2hY018");
+    formData.append("api_key", API_KEY);
+    formData.append("api_secret", API_SECRET);
     formData.append("image_file", imageBlob);
-    // We must explicitly ask for 'emotion' return attributes
     formData.append("return_attributes", "emotion"); 
-
     try {
       const response = await fetch("https://api-us.faceplusplus.com/facepp/v3/detect", {
-        method: "POST",
-        body: formData, 
+        method: "POST", body: formData, 
       });
-
       if (response.ok) {
         const data = await response.json();
-        
         if (data.faces && data.faces.length > 0) {
-          // Face++ returns an object with percentages for all emotions
           const emotionsObj = data.faces[0].attributes.emotion;
-          
-          // Find the emotion with the highest value
-          const dominant = Object.keys(emotionsObj).reduce((a, b) => 
-            emotionsObj[a] > emotionsObj[b] ? a : b
-          );
-
+          const dominant = Object.keys(emotionsObj).reduce((a, b) => emotionsObj[a] > emotionsObj[b] ? a : b);
           setCurrentEmotion(dominant.toUpperCase());
-          addLog(`Emotion Detected: ${dominant.toUpperCase()} (${emotionsObj[dominant]}%)`);
-          setEmotionStrength( emotionsObj[dominant] / 10);        
-        } else {
-          addLog("⚠️ No face detected.");
-          setCurrentEmotion("NO FACE");
+          setEmotionStrength(emotionsObj[dominant] / 10);
+
+          const strengthValue = emotionsObj[dominant] / 10;
+          setEmotionStrength(strengthValue);
+
+          analyzeTransition(dominant.toUpperCase(), strengthValue);
+
+          addLog(`Live Sense: ${dominant.toUpperCase()} (${emotionsObj[dominant].toFixed(1)}%)`);
         }
-      } else {
-        console.error("Face++ Error:", await response.text());
       }
-    } catch (error) {
-      console.error("Network Error:", error);
-    }
+    } catch (error) { console.error("API Error", error); }
   };
 
-  // 3. Trigger Logic: Watch for Scenario Change
+
   useEffect(() => {
-    // Reset emotion display when video changes
-    setCurrentEmotion("Analyzing...");
-    
-    // Wait 3 seconds after new video starts, then capture
-    const timerId = setTimeout(() => {
-      console.log("⏰ 3 seconds passed, triggering emotion check...");
-      captureAndAnalyzeEmotion();
-    }, 3000);
-
-    // Cleanup: If user skips video before 3s, cancel the timer
-    return () => clearTimeout(timerId);
-  }, [currentVideoIdx]); // Re-run whenever currentVideoIdx changes
-
-
-  // --- SOLACE INIT ---
-  useEffect(() => {
-    const factoryProps = new solace.SolclientFactoryProperties();
-    factoryProps.profile = solace.SolclientFactoryProfiles.version10;
-    solace.SolclientFactory.init(factoryProps);
-
-    const session = solace.SolclientFactory.createSession({
-      url: BROKER_URL,
-      vpnName: VPN_NAME,
-      userName: USERNAME,
-      password: PASSWORD,
-    });
-
-    session.on(solace.SessionEventCode.UP_NOTICE, () => {
-      addLog("✅ Solace Connected");
-      setIsConnected(true);
-
+    const startCamera = async () => {
       try {
-        const topic = solace.SolclientFactory.createTopicDestination(ORCHESTRATOR_RES_TOPIC);
-        session.subscribe(topic, true, "sam_res_sub", 10000);
-        addLog("📡 Subscribed to SAM Responses");
-      } catch (e) {
-        addLog(`❌ Sub Error: ${e}`);
-      }
-    });
-
-    session.on(solace.SessionEventCode.MESSAGE, (message: any) => {
-      try {
-        const payload = JSON.parse(message.getBinaryAttachment());
-        if (payload.data && payload.data.bpm) {
-          addLog(`💓 Vitals Detected: ${payload.data.bpm} BPM`);
-        }
-      } catch (e) {
-        console.error("Payload Parse Error", e);
-      }
-    });
-
-    session.on(solace.SessionEventCode.CONNECT_FAILED_ERROR, (e: any) => {
-      addLog(`❌ Connect Failed: ${e.message}`);
-    });
-
-    try {
-      session.connect();
-      sessionRef.current = session;
-    } catch (e) {
-      addLog(`Init Error: ${e}`);
-    }
-
-    return () => { if (sessionRef.current) sessionRef.current.disconnect(); };
-  }, []);
-
-  // --- WEBCAM INIT ---
-  useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
+        // 1. Request the camera stream
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 1280, height: 720 } 
+        });
+        
+        // 2. Assign it to your video ref
         if (webcamRef.current) {
           webcamRef.current.srcObject = stream;
-          webcamRef.current.play().catch(console.error);
+          
+          // 3. Force it to play (browsers often block auto-play)
+          webcamRef.current.onloadedmetadata = () => {
+            webcamRef.current?.play();
+          };
         }
-        addLog("📷 Webcam Active");
-      })
-      .catch(err => addLog(`❌ Webcam Fail: ${err.message}`));
+      } catch (err) {
+        console.error("Camera access denied:", err);
+        addLog("CRITICAL: SENSOR ACCESS DENIED");
+      }
+    };
+
+    startCamera();
   }, []);
 
-  // --- STREAMING LOOP (VITALS) ---
   useEffect(() => {
-    if (!isConnected || !sessionRef.current) return;
-    
-    const interval = setInterval(() => {
-      if (isSaving) return;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        // 1. ALWAYS clear existing timers when a transition is detected
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
+        const video = entry.target.querySelector('video');
 
-      if (webcamRef.current && canvasRef.current) {
-        const ctx = canvasRef.current.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(webcamRef.current, 0, 0, 320, 240);
-          canvasRef.current.toBlob(async (blob) => {
-            if (!blob) return;
-            try {
-              const buffer = await blob.arrayBuffer();
-              const msg = solace.SolclientFactory.createMessage();
-              const dest = solace.SolclientFactory.createTopicDestination(`video/stream/${USER_DISPLAY_NAME.toLowerCase()}`);
-              msg.setDestination(dest);
-              msg.setBinaryAttachment(buffer);
-              msg.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT);
-              sessionRef.current.send(msg);
-            } catch (e) { console.error(e); }
-          }, 'image/jpeg', 0.5);
+        if (entry.isIntersecting) {
+          video?.play().catch(err => console.log("Autoplay blocked", err));
+          const index = STUB_VIDEOS.findIndex(
+            (v) => v.title === entry.target.querySelector('h3')?.innerText
+          );
+          setCurrentVideoIdx(index);
+
+          // 2. Start the "Settle" timer (2 seconds)
+          settleTimeoutRef.current = setTimeout(() => {
+            addLog(`STABILIZED: Commencing continuous surveillance...`);
+            
+            // Perform the first poll immediately
+            captureAndAnalyzeEmotion();
+
+            // 3. Start the repeating poll (every 3 seconds)
+            pollIntervalRef.current = setInterval(() => {
+              addLog("AUTO-POLLING BIOMETRICS...");
+              captureAndAnalyzeEmotion();
+            }, 3000);
+          }, 2000); 
         }
-      }
-    }, 200);
+      });
+    },
+    { threshold: 0.8 } // High threshold to ensure it's the main video in view
+  );
 
-    return () => clearInterval(interval);
-  }, [isConnected, isSaving]);
+  document.querySelectorAll('.video-snap-card').forEach(card => observer.observe(card));
 
-  // --- HANDLERS ---
-  const handleNextVideo = () => {
-    setIsSaving(true);
-    if (mainVideoRef.current) mainVideoRef.current.pause();
-    addLog(`💾 Saving session for: ${STUB_VIDEOS[currentVideoIdx].title}`);
-
-    setTimeout(() => {
-      const nextIdx = (currentVideoIdx + 1) % STUB_VIDEOS.length;
-      setCurrentVideoIdx(nextIdx);
-      setIsSaving(false);
-      addLog(`▶️ Starting: ${STUB_VIDEOS[nextIdx].title}`);
-    }, 1500);
+  return () => {
+    observer.disconnect();
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
   };
+}, []);
 
   useEffect(() => {
-    if (mainVideoRef.current) {
-      mainVideoRef.current.load();
-      mainVideoRef.current.play().catch(e => console.error("Playback error", e));
-    }
+    const timerId = setTimeout(() => captureAndAnalyzeEmotion(), 3000);
+    return () => clearTimeout(timerId);
   }, [currentVideoIdx]);
 
   return (
-    <div className="app-container">
-      {/* SIDEBAR */}
-      <div className="sidebar">
-        <div className="brand">SYNAPSE</div>
+    <div className="demo-layout">
+      {/* 1/3: SENSING PANEL */}
+      <section className="panel-left">
+        <div className="brand-header">SYNAPSE // SENSOR</div>
         
-        <div className="webcam-container">
-          <video ref={webcamRef} className="webcam-video" playsInline muted />
-          <canvas ref={canvasRef} width="320" height="240" style={{ display: 'none' }} />
+        <div className="webcam-module">
+          <video ref={webcamRef} className="webcam-feed" playsInline muted />
+          <div className="scan-line"></div>
+          <div className="overlay-tag">BIO_STREAM_ACTIVE</div>
+        </div>
 
-          <div className="vitals-monitor">
-            <div style={{fontSize: '3.5rem', marginBottom: '10px'}}>
-              {/* Emoji Logic remains here */}
-              {currentEmotion === "HAPPINESS" ? "😄" : 
-              currentEmotion === "SADNESS" ? "😢" : 
-              currentEmotion === "ANGER" ? "😠" : 
-              currentEmotion === "SURPRISE" ? "😲" : "😐"}
+        <div className="emotion-display">
+          <div className="emoji-stage">
+            {currentEmotion === "HAPPINESS" || currentEmotion === "HAPPY" ? "😄" : 
+             currentEmotion === "SADNESS" || currentEmotion === "SAD" ? "😢" : 
+             currentEmotion === "ANGER" || currentEmotion === "ANGRY" ? "😠" : 
+             currentEmotion === "SURPRISE" ? "😲" : "😐"}
+          </div>
+          <div className="emotion-label">{currentEmotion}</div>
+          <div className="sentiment-sub">NEURAL SENTIMENT ANALYSIS</div>
+        </div>
+
+        <div className="terminal-logs">
+          <div className="log-header">ENCRYPTED DATA UPLINK</div>
+          {logs.map((log, i) => <div key={i} className="log-line">{log}</div>)}
+        </div>
+      </section>
+
+      {/* 1/3: MEDIA PLAYER */}
+      <section className="panel-middle instagram-feed">
+        {STUB_VIDEOS.map((video, index) => (
+          <div key={video.id} className="video-snap-card">
+            <div className="media-player-container">
+              <video 
+                className="media-video" 
+                src={video.url} 
+                loop 
+                muted 
+                autoPlay={index === 0} // Only autoplay the first one initially
+                playsInline
+              />
             </div>
+            {/* <div className="media-meta">
+              <h3>{video.title}</h3>
+              <p>SCENARIO_ID: #00{video.id}</p>
+            </div> */}
+          </div>
+        ))}
+      </section>
+
+      {/* 1/3: SUBJECT PROFILE */}
+      <section className="panel-right">
+        <div className="profile-header">
+          <img src={USER_AVATAR} className="profile-img" alt=" Karl" />
+          <div className="profile-title">
+            <h2>{USER_DISPLAY_NAME}</h2>
+            <span className="id-tag">SUBJECT_ID: #44021</span>
+          </div>
+        </div>
+
+        <div className="metric-container">
+          <div className="metric-box">
+            <span className="label">EMOTIONAL INTENSITY</span>
+            <span className="value">{emotionStrength.toFixed(1)}<small>/10</small></span>
+            <div className="intensity-bar"><div className="fill" style={{width: `${emotionStrength*10}%`}}></div></div>
+          </div>
+
+          <div className="metric-box value-highlight">
+            <span className="label">DATA MARKET VALUE (USD)</span>
             
-            <div className="emotion" style={{fontSize: '1.4rem'}}>
-              {currentEmotion}
-            </div>
-            <div className="sentiment">SENTIMENT ANALYTICS</div>
-            <div style={{fontSize: '0.7rem', color: 'var(--primary)', marginTop: '5px'}}>
-              SENSING VIA FACE++
+            {/* Conditional class application */}
+            <span className={`value ${isPrimeTime ? 'text-prime-alert jitter' : 'text-success'}`}>
+              ${getMarketValue()}
+            </span>
+            
+            <span className="sub">
+              {isPrimeTime ? "Neural Disinhibition" : "Real-time spot price based on affect"}
+            </span>
+          </div>
+
+          <div className="strategy-box">
+            <span className="label">ADVERTISING STRATEGY</span>
+            <p className="strategy-text">{getAdStrategy()}</p>
+          </div>
+
+          <div className="data-tier">
+            <span className="label">COLLECTION STATUS</span>
+            <div className="status-grid">
+               <div className="tag active">BIO_READY</div>
+               <div className="tag active">FACE_LOCKED</div>
+               <div className="tag">GPS_SYNC</div>
             </div>
           </div>
         </div>
-
-        <div className="logs-container">
-          <div className="logs-header">SYSTEM LOGS</div>
-          {logs.map((log, i) => (
-            <div key={i} className="log-entry">{log}</div>
-          ))}
-        </div>
-
-        <button className="btn-profile" onClick={() => setShowProfile(true)}>
-            <span>👤 User Profile</span>
-        </button>
-      </div>
-
-      {/* MAIN STAGE */}
-      <div className="main-stage">
-        {isSaving && (
-          <div className="saving-overlay">
-            <div className="spinner"></div>
-            <div>STABILIZING SENSORS...</div>
+        <div className="metric-box">
+          <span className="label">BOREDOM STREAK</span>
+          <div className="streak-dots">
+            {[1, 2, 3, 4, 5, 6, 7].map(i => (
+              <div 
+                key={i} 
+                /* Pointing directly to boredomStreak state */
+                className={`dot ${boredomStreak >= i ? 'active' : ''} ${boredomStreak >= 7 ? 'primed' : ''}`}
+              />
+            ))}
           </div>
-        )}
-
-        <div className="video-player-frame">
-          <video 
-            ref={mainVideoRef}
-            className="main-video"
-            src={STUB_VIDEOS[currentVideoIdx].url}
-            controls={false}
-            loop
-          />
+          <span className="sub">
+            {boredomStreak >= 7 ? "STABLE BASELINE REACHED: READY TO HARVEST" : "ESTABLISHING BASELINE..."}
+          </span>
         </div>
-
-        <div className="video-controls">
-          <div className="video-info">
-            <h2>{STUB_VIDEOS[currentVideoIdx].title}</h2>
-            <p>ID: #{STUB_VIDEOS[currentVideoIdx].id} // MESH_ACTIVE: {isConnected ? 'YES' : 'NO'}</p>
-          </div>
-          <button className="btn-next" onClick={handleNextVideo} disabled={isSaving}>
-            Next Scenario &gt;&gt;
-          </button>
-          <button 
-            onClick={captureAndAnalyzeEmotion}
-            style={{ background: 'var(--primary)', color: 'white', padding: '10px', marginTop: '10px' }}
-          >
-            Force Emotion Check
-          </button>
+        <div className="monetize-footer">
+          MARKETPLACE DATA BROADCASTING...
         </div>
-      </div>
-
-      {/* MODAL */}
-      {showProfile && (
-        <div className="modal-overlay" onClick={() => setShowProfile(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-                
-                <div className="modal-header">
-                    <div className="modal-header-content">
-                        <img src={USER_AVATAR} alt="Karl Profile" className="profile-avatar" />
-                        <h2>Subject Analysis: {USER_DISPLAY_NAME}</h2>
-                    </div>
-                    <button className="btn-close" onClick={() => setShowProfile(false)}>&times;</button>
-                </div>
-
-                <div className="modal-body">
-                    <div className="analysis-summary">
-                      <div className="stat-card">
-                          <div className="stat-label">Emotion Strength</div>
-                          <div className="stat-value">{emotionStrength}</div>
-                      </div>
-                      <div className="stat-card" style={{border: '1px solid #00ff00'}}>
-                          <div className="stat-label">Market Value (USD)</div>
-                          <div className="stat-value" style={{color: '#00ff00'}}>
-                              {/* Logic: Higher value for non-neutral emotions */}
-                              {0.89*emotionStrength}
-                          </div>
-                          <div style={{fontSize: '0.6rem'}}>Current Bidding Active</div>
-                      </div>
-                      <div className="stat-card">
-                          <div className="stat-label">Data Tier</div>
-                          <div className="stat-value">PREMIUM</div>
-                      </div>
-                  </div>
-
-                    <h3 style={{color: 'var(--primary)', borderBottom: '1px solid #333', paddingBottom: '10px'}}>
-                        RECOMMENDED PRODUCTS (SAM GENERATED/YELLOWCAKE SCRAPED)
-                    </h3>
-                    
-                    <div className="products-grid">
-                        {MOCK_PRODUCTS.map(product => (
-                            <div key={product.id} className="product-card">
-                                <a href={product.link} target="_blank" rel="noopener noreferrer" style={{ display: 'block', cursor: 'pointer' }}>
-                                    <img src={product.image} alt={product.name} className="product-image" />
-                                </a>
-
-                                <div className="product-info">
-                                    <div className="product-title">{product.name}</div>
-                                    <div className="product-price">{product.price}</div>
-                                    <div style={{fontSize: '0.7rem', color: '#666', marginTop: '5px'}}>
-                                        Match: {product.category}
-                                    </div>
-                                    <a href={product.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                                        <button className="btn-buy">VIEW PRODUCT</button>
-                                    </a>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-            </div>
-        </div>
-      )}
-
+      </section>
     </div>
   );
 }
