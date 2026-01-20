@@ -11,8 +11,8 @@ const USER_DISPLAY_NAME = "KARL";
 const USER_AVATAR = "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"; 
 const ORCHESTRATOR_RES_TOPIC = "sam/response";
 const FACEPP_URL = "https://api-us.faceplusplus.com/facepp/v3/detect";
-const API_KEY = "azCqpFSAkVszLumZS7vD2PdUD-BH6mDd"; 
-const API_SECRET="Yn1nV3_0N7PZyarkBjaYnMRD5LbO30ga";
+const API_KEY = "RDYV3VH5bjL0btEO_aY6-c-SJIxxegJS";
+const API_SECRET="7OXraYh5h6NuCmk-aMZE_l2RD5lVfTQS";
 
 const STUB_VIDEOS = [
   { id: 1, title: "Scenario A: Gaming Minecraft", url: "/videos/video1.mp4", tags: ["GAMING", "MINECRAFT", "BRAINROT"]},
@@ -64,7 +64,7 @@ function App() {
   const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPrimeTime, setIsPrimeTime] = useState(false);
   const [harvestedInterests, setHarvestedInterests] = useState<string[]>([]);
-
+  const activeIdxRef = useRef(0); // Add this at the top with your other refs       
   const accrueInterests = (tags: string[]) => {
     setHarvestedInterests(prev => {
       const newSet = new Set([...prev, ...tags]);

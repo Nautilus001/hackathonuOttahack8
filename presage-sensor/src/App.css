@@ -83,17 +83,13 @@ body, html, #root {
   text-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
 }
 
-@keyframes jitter-anim {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-1.5px, 1.5px); }
-  50% { transform: translate(1.5px, -1.5px); }
-  75% { transform: translate(-1.5px, -1.5px); }
-  100% { transform: translate(1.5px, 1.5px); }
+.value {
+  display: inline-block; /* CRITICAL: Allows the jitter animation to work */
+  transition: all 0.2s ease;
 }
 
 .jitter {
-  display: inline-block;
-  animation: jitter-anim 0.15s cubic-bezier(.36,.07,.19,.97) infinite;
+  animation: jitter-anim 0.1s infinite;
 }
 
 .video-snap-card {
